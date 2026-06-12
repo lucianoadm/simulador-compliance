@@ -276,12 +276,12 @@
         };
 
         function requestApiKey(force) {
-            if (force || !sessionStorage.getItem("LEXOS_OPENAI_KEY")) {
-                let key = prompt("Insira a sua Chave de API OpenAI (Deixe vazio para usar o modo offline baseado em templates estruturados):");
+            if (force || !sessionStorage.getItem("LEXOS_KEY")) {
+                let key = prompt("Insira a sua Chave de API (Deixe vazio para usar o modo offline baseado em templates estruturados):");
                 if (key && key.trim() !== "") {
-                    sessionStorage.setItem("LEXOS_OPENAI_KEY", key.trim());
+                    sessionStorage.setItem("LEXOS_KEY", key.trim());
                     document.getElementById("api-status-badge").className = "text-xs bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-medium border border-emerald-500/30 flex items-center gap-1.5";
-                    document.getElementById("api-status-badge").innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>IA Conectada (OpenAI)`;
+                    document.getElementById("api-status-badge").innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>IA Conectada `;
                 }
             }
         }
@@ -459,7 +459,7 @@
 
         async function processScenarioWithAI() {
 
-    const apiKey = sessionStorage.getItem("LEXOS_OPENAI_KEY");
+    const apiKey = sessionStorage.getItem("LEXOS_KEY");
 
     const probValue = parseFloat(document.getElementById('sim-prob').value);
     const incType = document.getElementById('sim-type').value;
