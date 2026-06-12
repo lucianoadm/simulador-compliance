@@ -564,16 +564,33 @@ Classe Weka: ${targetClass}
             throw new Error("Estrutura de resposta inválida.");
         }
 
-        const rawText =
+                let rawText =
             data.candidates[0].content.parts[0].text;
 
         console.log("Conteúdo bruto recebido:");
         console.log(rawText);
 
+        // Remove markdown caso o Gemini devolva ```json
+        rawText = rawText
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
+            .trim();
+
+        console.log("Conteúdo após limpeza:");
+        console.log(rawText);
+
         let res;
 
         try {
-            res = JSON.parse(rawText);
+
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+
+            if (!jsonMatch) {
+                throw new Error("Nenhum JSON encontrado.");
+            }
+
+            res = JSON.parse(jsonMatch[0]);
+
         } catch (parseError) {
 
             console.error("Falha ao converter JSON:");
@@ -582,6 +599,7 @@ Classe Weka: ${targetClass}
 
             throw new Error("O Gemini retornou JSON inválido.");
         }
+
 
         document.getElementById('doc-id').innerText =
             "LEX-" + caseId;
