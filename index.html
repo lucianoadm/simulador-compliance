@@ -471,32 +471,32 @@
             switchTab('weka');
         }
 
-        async function processScenarioWithAI() {
-            const apiKey = sessionStorage.getItem("LEXOS_KEY");
-            const ilrValue = parseFloat(document.getElementById('sim-ilr').value); 
-            const incType = document.getElementById('sim-type').value;
-            const caseId = document.getElementById('sim-id').value;
+async function processScenarioWithAI() {
+    const apiKey = sessionStorage.getItem("LEXOS_KEY");
+    const ilrValue = parseFloat(document.getElementById('sim-ilr').value); 
+    const incType = document.getElementById('sim-type').value;
+    const caseId = document.getElementById('sim-id').value;
 
-            let targetClass = "Baixo_Risco";
-            if (ilrValue >= 72.0) {
-                targetClass = "Alto_Risco";
-            } else if (ilrValue >= 45.0) {
-                targetClass = "Medio_Risco";
-            }
+    let targetClass = "Baixo_Risco";
+    if (ilrValue >= 72.0) {
+        targetClass = "Alto_Risco";
+    } else if (ilrValue >= 45.0) {
+        targetClass = "Medio_Risco";
+    }
 
-            if (!apiKey) {
-                console.warn("Nenhuma chave Gemini encontrada. Ativando contingência local.");
-                runStaticFallback(targetClass, ilrValue, incType, caseId);
-                return;
-            }
+    if (!apiKey) {
+        console.warn("Nenhuma chave Gemini encontrada. Ativando contingência local.");
+        runStaticFallback(targetClass, ilrValue, incType, caseId);
+        return;
+    }
 
-            const btn = document.getElementById('btn-trigger-ai');
-            const btnText = document.getElementById('btn-text');
+    const btn = document.getElementById('btn-trigger-ai');
+    const btnText = document.getElementById('btn-text');
 
-            btnText.innerText = "Analisando Via API...";
-            btn.disabled = true;
+    btnText.innerText = "Analisando Via API...";
+    btn.disabled = true;
 
-            const systemPrompt = `
+    const systemPrompt = `
 Você é o motor analítico do ecossistema LexOS, atuando como um Auditor de Compliance Corporativo.
 
 REGRAS ABSOLUTAS:
@@ -514,75 +514,76 @@ Estrutura obrigatória:
 }
 `;
 
-            const userPrompt = `
+    const userPrompt = `
 Caso ID: ${caseId}
 Incidente Corporativo: ${incType}
 Índice ILR Calculado: ${ilrValue}
 Classe Alvo Preditiva: ${targetClass}
 `;
 
-            try {
-                console.log("Iniciando requisição Gemini...");
+    try {
+        console.log("Iniciando requisição ao ecossistema Gemini 2.5...");
 
-                const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            contents: [
+        // ATUALIZADO: Ajustado para o endpoint oficial e correto do Gemini 2.5 Flash
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            parts: [
                                 {
-                                    parts: [
-                                        {
-                                            text: `${systemPrompt}\n\n${userPrompt}`
-                                        }
-                                    ]
+                                    text: `${systemPrompt}\n\n${userPrompt}`
                                 }
-                            ],
-                            generationConfig: {
-                                responseMimeType: "application/json",
-                                temperature: 0
-                            }
-                        })
+                            ]
+                        }
+                    ],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        temperature: 0
                     }
-                );
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data?.error?.message || `Erro HTTP ${response.status}`);
-                }
-
-                if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                    throw new Error("Estrutura de resposta do modelo inválida.");
-                }
-
-                let rawText = data.candidates[0].content.parts[0].text.trim();
-                let res = JSON.parse(rawText);
-
-                document.getElementById('doc-id').innerText = "LEX-" + caseId;
-                document.getElementById('doc-risk-value').innerText = "ILR: " + ilrValue.toFixed(1);
-                setDocBadges(targetClass);
-
-                document.getElementById('doc-p1').innerText = res.diagnostico_estrutural || "Não informado.";
-                document.getElementById('doc-p2').innerText = res.analise_matematica_weka || "Não informado.";
-                document.getElementById('doc-p3').innerText = res.tese_defensiva_rhetorical || "Não informado.";
-                document.getElementById('doc-p4-contingency').innerText = res.plano_contingencia_reversa || "Não informado.";
-
-                switchTab('relatorio');
-                console.log("Relatório gerado com sucesso via GenAI.");
-
-            } catch (err) {
-                console.error("Erro no motor generativo:", err);
-                alert(`Falha na API Gemini: ${err.message}\n\nExecutando modo local resiliente.`);
-                runStaticFallback(targetClass, ilrValue, incType, caseId);
-            } finally {
-                btnText.innerText = "Rodar IA Real (API)";
-                btn.disabled = false;
+                })
             }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data?.error?.message || `Erro HTTP ${response.status}`);
         }
+
+        if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            throw new Error("Estrutura de resposta do modelo inválida.");
+        }
+
+        let rawText = data.candidates[0].content.parts[0].text.trim();
+        let res = JSON.parse(rawText);
+
+        document.getElementById('doc-id').innerText = "LEX-" + caseId;
+        document.getElementById('doc-risk-value').innerText = "ILR: " + ilrValue.toFixed(1);
+        setDocBadges(targetClass);
+
+        document.getElementById('doc-p1').innerText = res.diagnostico_estrutural || "Não informado.";
+        document.getElementById('doc-p2').innerText = res.analise_matematica_weka || "Não informado.";
+        document.getElementById('doc-p3').innerText = res.tese_defensiva_rhetorical || "Não informado.";
+        document.getElementById('doc-p4-contingency').innerText = res.plano_contingencia_reversa || "Não informado.";
+
+        switchTab('relatorio');
+        console.log("Relatório gerado com sucesso via Gemini 2.5.");
+
+    } catch (err) {
+        console.error("Erro no motor generativo:", err);
+        alert(`Falha na API Gemini: ${err.message}\n\nExecutando modo local resiliente.`);
+        runStaticFallback(targetClass, ilrValue, incType, caseId);
+    } finally {
+        btnText.innerText = "Rodar IA Real (API)";
+        btn.disabled = false;
+    }
+}
 
         function setDocBadges(riskClass) {
             const statusBox = document.getElementById('doc-status-box');
