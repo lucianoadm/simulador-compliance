@@ -447,35 +447,51 @@
         }
 
         function selectRow(idx) {
-            if (!globalData[idx]) return;
-            const item = globalData[idx];
-            
-            document.getElementById('sim-id').value = item.id;
-            document.getElementById('sim-prob').value = item.prob;
-            document.getElementById('sim-type').value = item.incidente;
-            
-            switchTab('weka');
+    if (!globalData[idx]) return;
+    const item = globalData[idx];
+    
+    // 1. Mapeia o ID e o Tipo de Incidente do novo CSV
+    document.getElementById('sim-id').value = item.id;
+    document.getElementById('sim-type').value = item.tipo_incidente; // Ajustado para bater com o nome da coluna no novo R
+    
+    // 2. ATUALIZADO: Troca a antiga probabilidade pelo seu Indicador Metodológico (ILR)
+    document.getElementById('sim-ilr').value = item.ilr; // Lê a coluna 'ilr' gerada pelo R
+    
+    // Opcional: Se você criou campos visuais para mostrar o caso selecionado antes de rodar a IA
+    if(document.getElementById('display-selected-id')) {
+        document.getElementById('display-selected-id').innerText = "Caso: LEX-" + item.id;
+    }
+    if(document.getElementById('display-selected-ilr')) {
+        document.getElementById('display-selected-ilr').innerText = "Índice ILR: " + item.ilr;
+    }
+    
+    // 3. Mantém a mudança de aba para o painel de simulação/Weka
+    switchTab('weka');
         }
 
         async function processScenarioWithAI() {
 
+    // 1. Mantém a captura segura da sua chave na sessão volátil
     const apiKey = sessionStorage.getItem("LEXOS_KEY");
 
-    const probValue = parseFloat(document.getElementById('sim-prob').value);
+    // 2. ATUALIZADO: Agora lemos o valor do ILR (Índice LexOS de Risco) vindo da tela
+    const ilrValue = parseFloat(document.getElementById('sim-ilr').value); 
     const incType = document.getElementById('sim-type').value;
     const caseId = document.getElementById('sim-id').value;
 
+    // 3. ATUALIZADO: Novas fronteiras de corte determinadas pelo experimento científico
     let targetClass = "Baixo_Risco";
 
-    if (probValue > 0.74) {
-        targetClass = "Alto_Risco_Sancao";
-    } else if (probValue > 0.49) {
+    if (ilrValue >= 72.0) {
+        targetClass = "Alto_Risco"; // Alinhado com a nova classe do Weka
+    } else if (ilrValue >= 45.0) {
         targetClass = "Medio_Risco";
     }
 
+    // 4. Se o usuário estiver sem chave, o fallback roda com os novos parâmetros
     if (!apiKey) {
-        console.warn("Nenhuma chave Gemini encontrada.");
-        runStaticFallback(targetClass, probValue, incType, caseId);
+        console.warn("Nenhuma chave Gemini encontrada. Ativando contingência local.");
+        runStaticFallback(targetClass, ilrValue, incType, caseId);
         return;
     }
 

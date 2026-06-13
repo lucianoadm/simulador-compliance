@@ -1,75 +1,68 @@
 # ==============================================================================
-# ECOSSISTEMA LEXOS (COGNIVUS) - MÓDULO LEXMETRIC
-# Script: Gerador de Massa de Dados Simulada (5000 casos) para Validação no WEKA
-# Contexto: Governança de Dados Online e Riscos de Privacidade
+# ECOSSISTEMA LEXOS (COGNIVUS) - MÓDULO LEXMETRIC CAMADA 2
+# Script: Gerador Científico com Ruído Estatístico e Indicador ILR
+# Autor: Luciano P. de Moura
+# Ancoragem: IV Mostra Científica de Direito na Escola (2026)
 # ==============================================================================
 
-# 1. Configurações Iniciais e Semente (Para garantir a reprodutibilidade)
-set.seed(1975) # Sua assinatura temporal
+set.seed(1975) # Sua assinatura temporal mantida para reprodutibilidade
 n_registros <- 5000
 
-print("Iniciando a geração da massa de dados simulada...")
+print("Iniciando a geração da massa de dados científica LexOS...")
 
-# 2. Vetores de Base para a Simulação
+# 1. Definição das Variáveis de Entrada Brutas
 tipos_incidentes <- c("Vazamento_API", "Falha_Cookies", "Ausencia_Termos")
 canais_origem    <- c("E-commerce", "Portal_Cliente", "App_Mobile")
 
-# 3. Geração das Variáveis Independentes Brutas
 id_incidente  <- 1000 + 1:n_registros
-data_registro <- seq(as.Date("2025-01-01"), by = "days", length.out = n_registros)
-data_registro <- sample(data_registro, n_registros, replace = TRUE)
-
 tipo_incidente <- sample(tipos_incidentes, n_registros, replace = TRUE, prob = c(0.4, 0.35, 0.25))
-canal_origem   <- sample(canais_origem, n_registros, replace = TRUE, prob = c(0.45, 0.35, 0.20))
+canal_origem   <- sample(canais_origem, n_registros, replace = TRUE)
 
-# Distribuindo volume de titulares e severidade de acordo com o tipo para dar realismo
-volume_titulares <- round(runif(n_registros, min = 100, max = 10000))
+# Simulação de variáveis numéricas contínuas independentes
+volume_titulares <- round(runif(n_registros, min = 100, max = 50000))
 severidade_reputacional <- round(runif(n_registros, min = 1, max = 10))
 
-# Ajustando pesos realistas: Vazamento de API tende a expor mais pessoas e ter maior severidade
-idx_api <- which(tipo_incidente == "Vazamento_API")
-volume_titulares[idx_api] <- round(runif(length(idx_api), min = 2500, max = 10000))
-severidade_reputacional[idx_api] <- round(runif(length(idx_api), min = 6, max = 10))
+# 2. [AJUSTE Nº 5] Construção do ILR (Índice LexOS de Risco)
+# Pesos metodológicos: Severidade (40%), Volume Normalizado (30%), Peso do Tipo (30%)
+peso_tipo <- ifelse(tipo_incidente == "Vazamento_API", 10, 
+                    ifelse(tipo_incidente == "Falha_Cookies", 6, 3))
 
-# 4. Criação das Regras Probabilísticas Ocultas (O "Alvo" que o WEKA vai descobrir)
-# Inicializando os vetores de resposta
-probabilidade_perda <- rep(0, n_registros)
-regra_j48_weka      <- rep("Baixo_Risco", n_registros)
+# Normalização do volume de titulares para escala de 1 a 10
+volume_norm <- (volume_titulares - 100) / (50000 - 100) * 9 + 1
 
+# Cálculo matemático puro do ILR (Escala de 0 a 100)
+ilr_puro <- (severidade_reputacional * 0.4 + volume_norm * 0.3 + peso_tipo * 0.3) * 10
+ilr_final <- round(ilr_puro, 1)
+
+# 3. Definição da Classe Alvo Teórica (Sem entregar a resposta mastigada)
+resultado_final <- ifelse(ilr_final >= 72, "Alto_Risco",
+                          ifelse(ilr_final >= 45, "Medio_Risco", "Baixo_Risco"))
+
+# 4. [AJUSTE Nº 2] Introdução de Ruído Estatístico Real (Aproximadamente 7%)
+# Força o Weka a aprender com imperfeições do mundo real (ex: ANPD/Procon)
 for(i in 1:n_registros) {
-  # Regra de Risco 1: Vazamento de API de alta severidade corporativa
-  if(tipo_incidente[i] == "Vazamento_API" && severidade_reputacional[i] >= 7) {
-    probabilidade_perda[i] <- round(runif(1, min = 0.75, max = 0.98), 2)
-    regra_j48_weka[i]      <- "Alto_Risco_Sancao"
-  } 
-  # Regra de Risco 2: Grande volume de titulares afetados por Cookies ou Ausência de Termos
-  else if(volume_titulares[i] > 5000 && severidade_reputacional[i] >= 5) {
-    probabilidade_perda[i] <- round(runif(1, min = 0.50, max = 0.74), 2)
-    regra_j48_weka[i]      <- "Medio_Risco"
-  } 
-  # Regra de Risco 3: Casos residuais ou de menor impacto
-  else {
-    probabilidade_perda[i] <- round(runif(1, min = 0.05, max = 0.49), 2)
-    regra_j48_weka[i]      <- "Baixo_Risco"
+  sorteio_ruido <- runif(1)
+  
+  if(sorteio_ruido < 0.07) { # 7% de anomalias na matriz jurídica
+    classes_possiveis <- c("Alto_Risco", "Medio_Risco", "Baixo_Risco")
+    # Substitui por uma classe aleatória diferente da real para simular "ruído"
+    classes_erradas <- classes_possiveis[classes_possiveis != resultado_final[i]]
+    resultado_final[i] <- sample(classes_erradas, 1)
   }
 }
 
-# 5. Consolidação do Data Frame
-dados_lexos_piloto <- data.frame(
-  id_incidente,
-  data_registro = as.character(data_registro),
-  tipo_incidente,
-  volume_titulares,
-  severidade_reputacional,
-  canal_origem,
-  regra_j48_weka,
-  probabilidade_perda,
-  stringsAsFactors = TRUE # Importante para o Weka reconhecer classes nominais/fatores
+# 5. [AJUSTE Nº 1] Consolidação do Data Frame Científico 
+# Removemos a probabilidade e a regra mastigada. O Weka terá que descobrir as fronteiras do ILR!
+dados_lexos_cientifico <- data.frame(
+  id = id_incidente,
+  tipo_incidente = tipo_incidente,
+  canal_origem = canal_origem,
+  volume_titulares = volume_titulares,
+  severidade_reputacional = severidade_reputacional,
+  ilr = ilr_final,
+  resultado_final = as.factor(resultado_final)
 )
 
-# 6. Exportação do Arquivo .CSV Padronizado
-nome_arquivo <- "dados_lexos_piloto.csv"
-write.csv(dados_lexos_piloto, nome_arquivo, row.names = FALSE, fileEncoding = "UTF-8")
-
-print(paste("Sucesso! Arquivo '", nome_arquivo, "' gerado com ", n_registros, " linhas.", sep=""))
-print("Pronto para ser importado na aba 'Preprocess' do WEKA.")
+# 6. Salvando o Arquivo para o Experimento
+write.csv(dados_lexos_cientifico, "dados_lexos_cientifico.csv", row.names = FALSE)
+print("Massa de dados científica gerada com sucesso! Arquivo: dados_lexos_cientifico.csv")
